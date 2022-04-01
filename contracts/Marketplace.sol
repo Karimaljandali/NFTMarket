@@ -12,20 +12,18 @@ contract Marketplace {
     // 2. Contract to Listing mapping - DONE
     // 3. 
 
-    /// @notice Mapping that tracks an (NFT) address to an owner to a Listing object.
-    /// @dev Contract Address => Owner => Listing.
-    mapping(address => mapping(address => Listing)) public listings;
+    /// @notice Mapping that tracks an (NFT) address to an owner to a tokenID to a Listing object.
+    /// @dev Contract Address => Owner => tokenID => Listing.
+    mapping(address => mapping(address => mapping(uint64 => Listing))) public listings;
 
     /// @notice A struct that represent a Listing on the marketplace.
     /// @param owner   : address   The owner of the tokens that created the Listing.
     /// @param expires : uint64    Timestamp of when the Listing expires.
     /// @param price   : uint32    Price of the Listing
-    /// @param tokenId : uint32    ID of the token being listed.
     struct Listing {
         address owner;
         uint64  expires;
         uint32  price;
-        uint32  tokenId;
     }
 
     // Admin Functions, Events, and Structs
@@ -79,16 +77,35 @@ contract Marketplace {
         require(msg.sender == nft.ownerOf(_tokenId), "Error: you don't own this token.");
         require(_price > 0, "You can't list for 0.");
 
-        listings[_nftAddress][msg.sender] = Listing({
+        listings[_nftAddress][msg.sender][_tokenId] = Listing({
             owner: msg.sender,
             expires: _expires,
-            price: _price,
-            tokenId: _tokenId
+            price: _price
         });
         
         emit ListingCreated(msg.sender, _nftAddress, _expires, _tokenId, _price);
         
     }
 
-    
+
+    /// @notice Event that is emitted when a Listing is cancelled in the Marketplace.
+    /// @param _owner         : address  The address of the owner of the NFT
+    /// @param _nftAddress    : address  The address of the NFT.
+    /// @param _tokenId       : uint32   The tokenID of the NFT.
+    event ListingCancelled(address _owner, address _nftAddress, uint32 _tokenId); 
+
+    /// @notice This function cancels an existing Listing from the marketplace.
+    /// @param _nftAddress    : address The address of the NFT.
+    /// @param _tokenId       : uint64  The tokenID of the NFT.
+    function cancelListing(
+        address _nftAddress,
+        uint32 _tokenId
+    ) public {
+        IERC721 nft = IERC721(_nftAddress);
+        require(msg.sender == nft.ownerOf(_tokenId), "Error: you don't own this token.");
+        delete listings[_nftAddress][msg.sender][_tokenId];
+        
+        emit ListingCancelled(msg.sender, _nftAddress, _tokenId);
+    }
+
 }
