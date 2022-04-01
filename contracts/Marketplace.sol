@@ -2,7 +2,6 @@
 pragma solidity 0.8.13;
 
 import "@openzeppelin/contracts/interfaces/IERC721.sol";
-import "@openzeppelin/contracts/utils/Strings.sol";
 
 
 contract Marketplace {
@@ -54,10 +53,14 @@ contract Marketplace {
     /// Event that is emitted when a Listing is created for
     event ListingCreated(address _owner, address _nftAddress, uint64 _expires);
 
-    // TODO: Comments for this function.
+    /// This function handles the creations of Listings and adds it 
+    /// to the listings mapping and emits an event.
+    /// @param _nftCollection : address  The address of the NFT.
+    /// @param _expires       : uint64   The timestamp of the expiration.
+    /// @param _tokenId       : uint32   The tokenID of the NFT.
+    /// @param _price         : uint32   The price of the Listing.
     function createListing(
         address _nftCollection,
-        address _owner,
         uint64 _expires,
         uint32 _tokenId,
         uint32 _price
@@ -66,18 +69,18 @@ contract Marketplace {
         require(_expires > block.timestamp, "Error: set the expiration to the future.");
 
         IERC721 nft = IERC721(_nftCollection);
-        require(nft.isApprovedForAll(_owner, address(this)), "Error: the marketplace is not approved.");
-        require(_owner == nft.ownerOf(_tokenId), "Error: you don't own this token.");
+        require(nft.isApprovedForAll(msg.sender, address(this)), "Error: the marketplace is not approved.");
+        require(msg.sender == nft.ownerOf(_tokenId), "Error: you don't own this token.");
         require(_price > 0, "You can't list for 0.");
 
-        listings[_nftCollection][_owner] = Listing({
-            owner: _owner,
+        listings[_nftCollection][msg.sender] = Listing({
+            owner: msg.sender,
             expires: _expires,
             price: _price,
             tokenId: _tokenId
         });
         
-        emit ListingCreated(_owner, _nftCollection, _expires);
+        emit ListingCreated(msg.sender, _nftCollection, _expires);
         
     }   
 }
