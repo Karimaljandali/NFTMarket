@@ -44,7 +44,7 @@ contract Marketplace {
     // User Functions, Events, and Structs
     // ===================================
     // 1. Create Listing - DONE
-    // 2. Cancel Listing
+    // 2. Cancel Listing - DONE
     // 3. Buy Item
     // 4. Update Listing
 
