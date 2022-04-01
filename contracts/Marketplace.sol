@@ -12,8 +12,8 @@ contract Marketplace {
     // 2. Contract to Listing mapping - DONE
     // 3. 
 
-    /// Mapping that tracks an (NFT) address to an owner to a Listing object.
-    /// Contract Address => Owner => Listing.
+    /// @notice Mapping that tracks an (NFT) address to an owner to a Listing object.
+    /// @dev Contract Address => Owner => Listing.
     mapping(address => mapping(address => Listing)) public listings;
 
     /// @notice A struct that represent a Listing on the marketplace.
@@ -50,37 +50,45 @@ contract Marketplace {
     // 3. Buy Item
     // 4. Update Listing
 
-    /// Event that is emitted when a Listing is created for
-    event ListingCreated(address _owner, address _nftAddress, uint64 _expires);
+    /// @notice Event that is emitted when a Listing is created in the marketplace.
+    /// @param _owner         : address  The address of the owner of the NFT
+    /// @param _nftAddress    : address  The address of the NFT.
+    /// @param _expires       : uint64   The timestamp of the expiration.
+    /// @param _tokenId       : uint32   The tokenID of the NFT.
+    /// @param _price         : uint32   The price of the Listing.
+    event ListingCreated(address _owner, address _nftAddress, uint64 _expires, uint32 _tokenId, uint32 _price);
 
-    /// This function handles the creations of Listings and adds it 
+
+    /// @notice This function handles the creations of Listings and adds it 
     /// to the listings mapping and emits an event.
-    /// @param _nftCollection : address  The address of the NFT.
+    /// @param _nftAddress    : address  The address of the NFT.
     /// @param _expires       : uint64   The timestamp of the expiration.
     /// @param _tokenId       : uint32   The tokenID of the NFT.
     /// @param _price         : uint32   The price of the Listing.
     function createListing(
-        address _nftCollection,
+        address _nftAddress,
         uint64 _expires,
         uint32 _tokenId,
         uint32 _price
     ) public {
-        // TODO: Check if _NftCollection is a valid ERC-721 contract.
+        // TODO: Check if _nftAddress is a valid ERC-721 contract.
         require(_expires > block.timestamp, "Error: set the expiration to the future.");
 
-        IERC721 nft = IERC721(_nftCollection);
+        IERC721 nft = IERC721(_nftAddress);
         require(nft.isApprovedForAll(msg.sender, address(this)), "Error: the marketplace is not approved.");
         require(msg.sender == nft.ownerOf(_tokenId), "Error: you don't own this token.");
         require(_price > 0, "You can't list for 0.");
 
-        listings[_nftCollection][msg.sender] = Listing({
+        listings[_nftAddress][msg.sender] = Listing({
             owner: msg.sender,
             expires: _expires,
             price: _price,
             tokenId: _tokenId
         });
         
-        emit ListingCreated(msg.sender, _nftCollection, _expires);
+        emit ListingCreated(msg.sender, _nftAddress, _expires, _tokenId, _price);
         
-    }   
+    }
+
+    
 }
