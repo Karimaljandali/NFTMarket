@@ -45,7 +45,7 @@ contract Marketplace {
     // ===================================
     // 1. Create Listing - DONE
     // 2. Cancel Listing - DONE
-    // 3. Buy Item
+    // 3. Buy Item - DONE
     // 4. Update Listing
 
     /// @notice Event that is emitted when a Listing is created in the marketplace.
@@ -106,6 +106,47 @@ contract Marketplace {
         delete listings[_nftAddress][msg.sender][_tokenId];
         
         emit ListingCancelled(msg.sender, _nftAddress, _tokenId);
+    }
+
+    /// @notice Event that a purchase has been made.
+    /// @param _originalOwner : address  The address of the seller of the NFT.
+    /// @param _newOwner      : address  The address of the new owner of the NFT.
+    /// @param _nftAddress    : address  The address of the NFT.
+    /// @param _tokenId       : uint32   The tokenID of the NFT.
+    event PurchaseMade(address _originalOwner, address _newOwner, address _nftAddress, uint32 _tokenId);
+
+    /// @notice This function handles the purchase of a Listing.
+    /// @dev    We do a few security checks before transferring the token to the new owner
+    ///         and then transferring 100% of the proceeds to the seller.
+    /// @param _nftAddress    : address The address of the NFT.
+    /// @param _currentOwner  : address The address of the current holder of the NFT.
+    /// @param _tokenId       : uint64  The tokenID of the NFT.
+
+    function buyItem(address _nftAddress, address payable _currentOwner, uint32 _tokenId) 
+        external
+        payable
+    {
+        require(msg.sender != _currentOwner, "Error: you already own this token.");
+        Listing memory listing = listings[_nftAddress][_currentOwner][_tokenId];
+        require(listing.expires >= block.timestamp, "Error: listing expired.");
+        require(msg.value >= listing.price, "Error: not enough eth sent.");
+
+        IERC721 nft = IERC721(_nftAddress);
+        /// @dev Not sure if this is needed. Need to check if failing transfer of token
+        ///      implies that they don't own it anymore and code automatically stops.
+        ///      Guess it doesn't hurt to have the extra step here for now.
+        require(listing.owner == nft.ownerOf(_tokenId), "Error: listing creator no longer owns this.");
+
+        emit PurchaseMade(_currentOwner, msg.sender, _nftAddress, _tokenId);
+
+        /// Transfer NFT from old owner to new owner.
+        nft.safeTransferFrom(_currentOwner, msg.sender, _tokenId);
+
+        /// Transfer ETH to old owner.
+        /// For now we won't take a fee for the marketplace. Seller gets 100% of the proceeds.
+        _currentOwner.transfer(msg.value);
+
+        delete listings[_nftAddress][_currentOwner][_tokenId];
     }
 
 }
