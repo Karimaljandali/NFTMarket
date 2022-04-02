@@ -41,12 +41,12 @@ contract Marketplace {
     // 2. Update Fee Recipient Address
 
 
-    // User Functions, Events, and Structs
+    // User Functions, Events, and Structs - DONE
     // ===================================
     // 1. Create Listing - DONE
     // 2. Cancel Listing - DONE
     // 3. Buy Item - DONE
-    // 4. Update Listing
+    // 4. Update Listing - DONE
 
     /// @notice Event that is emitted when a Listing is created in the marketplace.
     /// @param _owner         : address  The address of the owner of the NFT
@@ -57,8 +57,7 @@ contract Marketplace {
     event ListingCreated(address _owner, address _nftAddress, uint64 _expires, uint32 _tokenId, uint32 _price);
 
 
-    /// @notice This function handles the creations of Listings and adds it 
-    /// to the listings mapping and emits an event.
+    /// @notice This function creates a Listing and emits an event.
     /// @param _nftAddress    : address  The address of the NFT.
     /// @param _expires       : uint64   The timestamp of the expiration.
     /// @param _tokenId       : uint32   The tokenID of the NFT.
@@ -69,20 +68,7 @@ contract Marketplace {
         uint32 _tokenId,
         uint32 _price
     ) public {
-        // TODO: Check if _nftAddress is a valid ERC-721 contract.
-        require(_expires > block.timestamp, "Error: set the expiration to the future.");
-
-        IERC721 nft = IERC721(_nftAddress);
-        require(nft.isApprovedForAll(msg.sender, address(this)), "Error: the marketplace is not approved.");
-        require(msg.sender == nft.ownerOf(_tokenId), "Error: you don't own this token.");
-        require(_price > 0, "You can't list for 0.");
-
-        listings[_nftAddress][msg.sender][_tokenId] = Listing({
-            owner: msg.sender,
-            expires: _expires,
-            price: _price
-        });
-        
+        _handleListing(_nftAddress, _expires, _tokenId, _price);
         emit ListingCreated(msg.sender, _nftAddress, _expires, _tokenId, _price);
         
     }
@@ -107,6 +93,7 @@ contract Marketplace {
         
         emit ListingCancelled(msg.sender, _nftAddress, _tokenId);
     }
+
 
     /// @notice Event that a purchase has been made.
     /// @param _originalOwner : address  The address of the seller of the NFT.
@@ -147,6 +134,53 @@ contract Marketplace {
         _currentOwner.transfer(msg.value);
 
         delete listings[_nftAddress][_currentOwner][_tokenId];
+    }
+
+
+    /// @notice Event that is emitted when a Listing is cancelled in the Marketplace.
+    /// @param _owner         : address  The address of the owner of the NFT
+    /// @param _nftAddress    : address  The address of the NFT.
+    /// @param _expires       : uint64   The tiemstamp of the expiration.
+    /// @param _tokenId       : uint32   The tokenID of the NFT.
+    /// @param _price         : uint32   The price of the Listing.
+    event ListingUpdated(address _owner, address _nftAddress, uint64 _expires, uint32 _tokenId, uint32 _price);
+
+    /// @notice This function updates a Listing and emits an event.
+    /// @param _nftAddress    : address  The address of the NFT.
+    /// @param _expires       : uint64   The timestamp of the expiration.
+    /// @param _tokenId       : uint32   The tokenID of the NFT.
+    /// @param _price         : uint32   The price of the Listing.
+    function updateItem(address _nftAddress, uint64 _expires, uint32 _tokenId, uint32 _price) public {
+        _handleListing(_nftAddress, _expires, _tokenId, _price);
+        emit ListingUpdated(msg.sender, _nftAddress, _expires, _tokenId, _price);
+    }
+
+    /// @notice This function is a helper function that creates/updates 
+    ///         Listing objects.
+    /// @param _nftAddress    : address  The address of the NFT.
+    /// @param _expires       : uint64   The timestamp of the expiration.
+    /// @param _tokenId       : uint32   The tokenID of the NFT.
+    /// @param _price         : uint32   The price of the Listing.
+    function _handleListing(
+        address _nftAddress,
+        uint64 _expires,
+        uint32 _tokenId,
+        uint32 _price
+    )
+        internal
+    {
+        require(_expires > block.timestamp, "Error: set the expiration to the future.");
+
+        IERC721 nft = IERC721(_nftAddress);
+        require(nft.isApprovedForAll(msg.sender, address(this)), "Error: the marketplace is not approved.");
+        require(msg.sender == nft.ownerOf(_tokenId), "Error: you don't own this token.");
+        require(_price > 0, "You can't list for 0.");
+
+        listings[_nftAddress][msg.sender][_tokenId] = Listing({
+            owner: msg.sender,
+            expires: _expires,
+            price: _price
+        });
     }
 
 }
